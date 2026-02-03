@@ -150,6 +150,22 @@ describe("commands", () => {
               ])))
     })
 
+    it("skips inline widgets on their own line", () => {
+      let widget = new class extends WidgetType {
+        toDOM() {
+          let s = document.createElement("span")
+          s.textContent = "x".repeat(100)
+          return s
+        }
+      }
+      testCmd("a|aaaaaaaaa\nbc", "aaaaaaaaaa\nb|c", cursorLineDown, [
+                EditorView.decorations.of(Decoration.set([
+                  Decoration.widget({widget, side: 1}).range(10)
+                ])),
+                EditorView.lineWrapping
+      ])
+    })
+
     it("can escape lines with padding", () => {
       let attributes = {style: "padding-bottom: 30px 0"}
       testCmd("a\n|b\nc", "a\nb\n|c",
