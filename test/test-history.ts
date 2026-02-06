@@ -70,6 +70,21 @@ describe("history", () => {
     ist(state.selection.main.head, 4)
   })
 
+  it("restores selection on undo-redo-undo", () => {
+    let state = mkState({}, "1\n2\n3")
+    state = state.update({selection: {anchor: 5}}).state
+    state = state.update({changes: {from: 5, insert: "."}, selection: {anchor: 6}}).state
+    state = state.update({selection: {anchor: 0}}).state
+    state = command(state, undo)
+    ist(state.selection.main.head, 5)
+    state = state.update({selection: {anchor: 0}}).state
+    state = command(state, redo)
+    ist(state.selection.main.head, 6)
+    state = state.update({selection: {anchor: 0}}).state
+    state = command(state, undo)
+    ist(state.selection.main.head, 5)
+  })
+
   it("tracks multiple levels of history", () => {
     let state = mkState({}, "one")
     state = type(state, "new")
@@ -249,7 +264,7 @@ describe("history", () => {
     state = state.update({annotations: isolateHistory.of("before")}).state
     state = state.update({selection: {anchor: 0, head: 2}}).state
     const selection = state.selection
-    state = state.update(state.replaceSelection("hello")).state
+    state = state.update({changes: [{from: 0, to: 2}, {from: 0, insert: "hello"}]}).state
     const selection2 = state.selection
     state = command(state, undo)
     ist(state.selection.eq(selection))
@@ -466,11 +481,10 @@ describe("history", () => {
       state = command(state, redoSelection)
       ist(state.selection.eq(selection2))
       state = state.update(state.replaceSelection("hello")).state
-      const selection3 = state.selection
       state = command(state, undoSelection)
       ist(state.selection.eq(selection2))
       state = command(state, redo)
-      ist(state.selection.eq(selection3))
+      ist(state.selection.main.head, 5)
     })
 
     it("can undo a selection through remote changes", () => {
